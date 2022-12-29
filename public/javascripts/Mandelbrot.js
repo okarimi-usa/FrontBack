@@ -313,7 +313,7 @@ let canvas = document.createElement("canvas");
 document.body.prepend(canvas);
 document.body.style = "margin: 0";
 
-// CSS pixel sizes. CSS pixel 1/96 of an inch.
+// CSS pixel size is: 1/96 of an inch.
 canvas.style.width = screen.width;
 canvas.style.height = screen.height;
 canvas.style.border = "1px solid black";
