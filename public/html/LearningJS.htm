@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.btn-group .button {
+  background-color: #4CAF50; /* Green */
+  border: 1px solid green;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  cursor: pointer;
+  float: left;
+}
+
+.btn-group .button:not(:last-child) {
+   border-right: none; /*Prevent double borders */
+}
+
+.btn-group .button:hover {
+  background-color: #3e8e41;
+}
+
+/* Style for table of contents. */
+#TOC {
+  border: solid black 1px;
+  margin: 10px;
+  padding: 10px;
+}
+
+.TOCEntry {
+  margin: 5px 0px;
+}
+
+.TOCEntry a {
+  text-decoration: none;
+}
+
+TOCLevel1 {
+  font-size: 16pt; font-weight: bold;
+}
+TOCLevel2 {
+  font-size: 14pt; margin-left: 0.25in;
+}
+TOCLevel3 {
+  font-size: 12pt; margin-left: 0.5in;
+}
+.TOCSection {
+  content: ":";
+}
+.TOCSectNum {
+  display: none;
+}
+</style>
+
+
+<script src="../javascripts/LearningJS.js"></script>
+</head>
+<body>
+
+
+<h1>sections</h1>
+<h2>section 2</h2>
+<p>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br></p>
+<h3>section 3</h3>
+<p>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br></p>
+<h4>section 4</h4>
+<p>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br></p>
+<h5>section 5</h5>
+<p>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br></p>
+<h6>section 6</h6>
+<p>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br>asdlkf asdlsl,sdfga<br></p>
+
+
+<p></p>
+
+<div class="btn-group">
+  <button class="button button1" onclick="callforBut1()">Generator</button>
+  <button class="button button2" onclick="callforBut2()">Prototype</button>
+  <button class="button button3" onclick="callforBut3()">ImageData</button>
+  <button class="button button4" onclick="callforBut4()">Button</button>
+  <button class="button button5" onclick="callforBut5()">Closure</button>
+  <button class="button button6" onclick="callforBut6()">Promises</button>
+  <button class="button button6" onclick="callforBut7()">TOC</button>
+</div>
+
+<pre id="results" style="clear:both; width:400px; overflow:auto"></pre>
+
+<!-- <script>
+    document.getElementById("results").innerHTML = "<br> My First JavaScript";
+</script> -->
+
+</body>
+</html>
