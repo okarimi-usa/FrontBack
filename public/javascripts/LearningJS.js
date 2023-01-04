@@ -3,6 +3,30 @@ window.onerror = function(msg, url, linenum){
 //window.addEventListener("error", function(msg, url, linenum){
     window.alert(msg, url, linenum);
 };
+class Complex {
+    constructor(x, y){
+         this.x = x;
+         this.y = y;
+    }
+    toString(){
+        return `${this.x}${this.y>0?` + ${Math.abs(this.y)}i`:this.y<0?` - ${Math.abs(this.y)}i`:''}`;
+    }
+    get re(){return this.x;}
+    set re(value){this.x = value;}
+
+    get im(){return this.y;}
+    set im(value){this.y = value;}
+
+    get magnitude(){return Math.pow(squre(this), 0.5);}
+    static add(c1, c2){return [c1.x + c2.x, c1.y + c2.y];}
+    static sub(c1, c2){return [c1.x - c2.x, c1.y - c2.y];}
+    static mult(c1, c2){return [c1.x * c2.x - c1.y * c2.y, c1.x * c2.y + c1.y * c2.x];}
+    static square(c) {return c.x * c.x + c.y * c.y;}
+    static div(c1, c2){
+        let squares = Math.pow(c1.x, 2) - Math.pow(c2.y, 2);
+        return new Complex(Complex.re(c1)/squares, -Complex.im(c1)/squares);
+    }
+}
 
 // Generator and yield.
 function callforBut1(){

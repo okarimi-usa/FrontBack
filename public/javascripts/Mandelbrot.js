@@ -7,6 +7,7 @@ class Tile {
         this.width = width;
         this.height = height;
     }
+    // Factory to break a rectangular region into smaller ones.
     static *tiles(width, height, numRows, numCols){
         let columnWidth = Math.floor(width/numCols);
         let rowHeight = Math.floor(height/numRows);
@@ -74,11 +75,17 @@ class WorkerPool {
 
 // perPixel is a numeric value ascribed as pixel side (size), used in computation of Mandelbrot algorithm.
 class PageState{
-    static initialState(){
+    static initialState(canvas){
         let s = new PageState();
-        s.cx = 0;
+
+        // To keep the entire mandelbrot visible area in the middle of the canvas.
+        // Center of the canvas relative to the complex plane coordinate system in pixels.
+        s.cx = -canvas.width / 8;
         s.cy = 0;
-        s.perPixel = 3 / window.innerHeight;
+
+        // Numeric value to scale pixel size to complex plain.
+        s.perPixel = 8 / (canvas.height + canvas.width);  
+
         s.maxIterations = 500;
         return s;
     }
@@ -123,12 +130,12 @@ class mandelbrotCanvas{
         this.colorTable = null;
 
         this.canvas.addEventListener("pointerdown", e => this.handlePointer(e));
-        this.canvas.addEventListener("keydown", e => this.handleKey(e));
-        this.canvas.addEventListener("resize", e => this.handleResize(e));
-        this.canvas.addEventListener("popstate", e => this.setState(e.state, true));
+        window.addEventListener("keydown", e => this.handleKey(e));
+        window.addEventListener("resize", e => this.handleResize(e));
+        window.addEventListener("popstate", e => this.setState(e.state, true));
 
         let fromURL = PageState.fromURL(window.location);
-        let fromInit = PageState.initialState();
+        let fromInit = PageState.initialState(this.canvas);
         this.state = (fromURL || fromInit);
 
         history.replaceState(this.state, "", this.state.toURL());
@@ -146,10 +153,9 @@ class mandelbrotCanvas{
             }
         }
 
-        this.render();
-
         if(!poped){
             history.pushState(this.state, "", this.state.toURL());
+            this.render();
         }
     }
 
@@ -159,30 +165,43 @@ class mandelbrotCanvas{
             return;
         }
 
+        // x0, and y0 origin of canvas. (Upper left corner) measured in complex plane coordinate system in pixel.
         let {cx, cy, perPixel, maxIterations} = this.state;
-        let x0 = cx - perPixel * this.width / 2;
-        let y0 = cy - perPixel * this.height / 2;
+        let x0 = cx - this.width / 2;
+        let y0 = cy - this.height / 2;
 
+        // Apply computation for every tile.
         let promises = this.tiles.map(tile => this.workerPool.addWork({
             tile: tile,
-            x0: x0 + tile.x * perPixel,
-            y0: y0 + tile.y * perPixel,
+            x0: x0 + tile.x,
+            y0: y0 + tile.y,
             perPixel: perPixel,
             maxIterations: maxIterations
         }));
 
+        // After all computations are done.
         this.pendingRender = Promise.all(promises).then(responses => {
+
+            // Find min and max number of iterations for all tiles.
             let min = maxIterations, max = 0;
             for(let r of responses){
                 if(r.min < min) min = r.min;
                 if(r.max > max) max = r.max;
             }
 
-            if(!this.colorTable || this.colorTable.length !== maxIterations + 1){
-                this.colorTable = new Uint32Array(maxIterations + 1);
+            // Allocate for a color table
+            if(!this.colorTable || this.colorTable.length !== max - min + 1){
+                this.colorTable = new Uint32Array(max - min + 1);
             }
 
-            if(min === max){
+            // Setup a color table corresponding to each iteration value.
+            if(min < max){
+                let maxlog = Math.log (max - min + 1);
+                for(let i = min; i <= max; i++){
+                    this.colorTable[i] = Math.ceil((Math.log (i - min + 1)/ maxlog) * (Math.pow(2, 32) - 1) >> 8);
+                }
+            }
+            else{ 
                 if(min === maxIterations){
                     this.colortable[min] = 0xFF000000;
                 }
@@ -190,24 +209,20 @@ class mandelbrotCanvas{
                     this.colortable[min] = 0;
                 }
             }
-            else{
-                let maxlog = Math.log(1 + max - min);
-                for(let i = min; i <= max; i++){
-                    this.colorTable[i] = Math.ceil((Math.log(1 + i - min)/ maxlog) * (Math.pow(2, 32) - 1) >> 8);
-                }
-            }
 
+            // Assign and fillup colors of tiles.
             for(let r of responses){
+
+                // For each tile, replace the number of iterations for each pixel with a color (a 32 bit value).
                 let iterations = new Uint32Array(r.imageData.data.buffer);
                 for(let i = 0; i < iterations.length; i++){
                     iterations[i] = this.colorTable[iterations[i]];
                 }
+                // Fillup tile colors.
+                this.context.putImageData(r.imageData, r.tile.x, r.tile.y);
             }
 
             this.canvas.style.transform = "";
-            for(let r of responses){
-                this.context.putImageData(r.imageData, r.tile.x, r.tile.y);
-            }
         })
         .catch(reason => {
             console.error("Promise rejected in render():", reason);
@@ -232,9 +247,10 @@ class mandelbrotCanvas{
         }, 200);
     }
     handleKey(event){
+        event.preventDefault();
         switch(event.key){
             case "Escape" :
-                this.setState(PageState.initialState());
+                this.setState(PageState.initialState(this.canvas));
                 break;
             case "+" :
                 this.setState(s => {
@@ -250,56 +266,65 @@ class mandelbrotCanvas{
                 });
                 break;
             case"o":
-                this.setState(s => s.perPixel *= 2);
+                this.setState(s => s.perPixel *= 1.5);
                 break;
             case "ArrowUp" :
-                this.setState(s => s.cy -= this.height / 10 * s.perPixel);
+                this.setState(s => s.cy += this.height / 10);
                 break;
             case "ArrowDown" :
-                this.setState(s => s.cy += this.height / 10 * s.perPixel);
+                this.setState(s => s.cy -= this.height / 10);
                 break;
             case "ArrowLeft" :
-                this.setState(s => s.cx -= this.width / 10 * s.perPixel);
+                this.setState(s => s.cx += this.width / 10 );
                 break;
-            case "Arrowright" :
-                this.setState(s => s.cy += this.width / 10 * s.perPixel);
+            case "ArrowRight" :
+                this.setState(s => s.cx -= this.width / 10);
                 break;
             default:
         }
     }
     handlePointer(event){
+        // Clicked location in window coordinates. (Upeer left corner)
         const x0 = event.clientX, y0 = event.clientY, t0 = Date.now();
 
+        // Top, right, bottom, left coordinates of the box around canvas relative to top-left window corner. Includes border.
+        let rect = this.canvas.getBoundingClientRect();
+
+        // offsetWidth, includes border, clientWidth includes padding only. Computed values are border thickness in x and y directions.
+        let offWidth = (this.canvas.offsetWidth - this.canvas.clientWidth) / 2;
+        let offHeight = (this.canvas.offsetHeight - this.canvas.clientHeight) / 2;
+
+        // Clicked point in canvas coordinate system at its upper left.
+        let x00 = x0 - rect.left - offWidth;
+        let y00 = y0 - rect.top - offHeight;
+
+        const {cx, cy} = this.state;
+        let moved = false;
         const pointerMoveHandler = event => {
-            let dx = event.clientX - x0, dy = event.clientY - y0, dt = Date.now() - t0;
-            if(dx > 10 || dy > 10 || dt > 500){
-                this.canvas.style.transform = `translate(${dx}px, ${dy}px)`;
-            }
+            let dx = event.clientX - x0, dy = event.clientY - y0;
+
+            this.setState(s => {
+                s.cx = cx - dx;
+                s.cy = cy - dy;
+            });
+            moved = true;
         };
 
+        // Zoom at clicked point.
         const pointerUpHandler = event => {
             this.canvas.removeEventListener("pointermove", pointerMoveHandler);
             this.canvas.removeEventListener("pointerup", pointerUpHandler);
+            if(!moved){
+                // Magnification factor
+                let mag = 1.25;
 
-            const dx = event.clientX - x0, dy = event.clientY - y0, dt = Date.now() - t0;
-            const {cx, cy, perPixel} = this.state;
-            if(dx > 10 || dy > 10 || dt > 500){
-                this.setState({
-                    cx: cx - dx * perPixel,
-                    cy: cy - dy * perPixel
-                });
-            }
-            else{
-                let cdx = x0 - this.width / 2;
-                let cdy = y0 - this.height / 2;
-
-                this.canvas.style.transform = `translate(${-cdx * 2}px, ${-cdy * 2}px) scale(2)`;
-
+                // Center of canvas in complex plane coordinate system to magnify at the clicked point.
                 this.setState(s => {
-                    s.cx += cdx * s.perPixel;
-                    s.cy += cdy * s.perPixel;
-                    s.perPixel /= 2;
+                    s.cx = cx + (x00 + cx - this.width / 2) * (mag - 1);
+                    s.cy = cy + (y00 + cy - this.height / 2) * (mag - 1);
+                    s.perPixel /= mag;
                 });
+                moved = false;
             }
         };
 
