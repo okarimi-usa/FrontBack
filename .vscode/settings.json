@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/0e26bfba-adef-4e14-8d2b-706e95fc30d2/resourceGroups/Mandelbrot-Set-GR/providers/Microsoft.Web/sites/Mandelbot-Set",
+    "appService.deploySubpath": "."
+}

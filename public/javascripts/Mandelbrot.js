@@ -333,20 +333,51 @@ class mandelbrotCanvas{
     }
 }
 
+async function loadUrlBlobImage(url) {
 
-let canvas = document.createElement("canvas");
-document.body.prepend(canvas);
-document.body.style = "margin: 0";
+    let blobBase = `https://scenetellstorage.blob.core.windows.net/primary-container`;
+    let endPoint = `${blobBase}/stylesheets${url}`;
 
-// CSS pixel size is: 1/96 of an inch.
-canvas.style.width = screen.width;
-canvas.style.height = screen.height;
-canvas.style.border = "1px solid black";
+    let response = await fetch(endPoint);
+    let blob = await response.blob() // Convert the response to a blob object 
+    
+    // return a promise that resolves with an image object.
+    return new Promise((resolve, reject) => {
         
-const scale = window.devicePixelRatio;
+        let image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.src = URL.createObjectURL(blob); // Create an img element and set its src to the blob URL.         
+        
+        image.width = 100;
+        image.height = 100;
+        image.style.position = "fixed";
+        image.style.top = "0";
+        image.style.left = "0";
+        document.body.appendChild(image);
 
-// Hardware pixel sizes
-canvas.width = Math.floor(screen.width * scale);
-canvas.height = Math.floor(screen.height * scale);
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(`Image at ${url} could not be loaded.`);
+    });
+}
 
-new mandelbrotCanvas(canvas);
+function rend (){
+    let canvas = document.createElement("canvas");
+    document.body.prepend(canvas);
+    document.body.style = "margin: 0";
+
+    // CSS pixel size is: 1/96 of an inch.
+    canvas.style.width = screen.width;
+    canvas.style.height = screen.height;
+    canvas.style.border = "1px solid black";
+            
+    const scale = window.devicePixelRatio;
+
+    // Hardware pixel sizes
+    canvas.width = Math.floor(screen.width * scale / 2);
+    canvas.height = Math.floor(screen.height * scale / 2);
+
+    loadUrlBlobImage('/images/coconut-tree.png');
+    new mandelbrotCanvas(canvas);
+}
+
+rend();
